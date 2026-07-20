@@ -1,0 +1,29 @@
+{
+  "name": "TOYS 141 — متجر ألعاب",
+  "short_name": "TOYS 141",
+  "description": "متجر ألعاب أطفال أونلاين — ألعاب تعليمية، إلكترونية، خارجية وأكثر",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FF5A36",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["shopping", "toys"]
+}

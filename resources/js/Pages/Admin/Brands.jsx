@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '../../Layouts/AdminLayout';
 import { Button, Modal, Input } from '../../Components/UI';
+import { useConfirm } from '../../Components/useConfirm';
 
 function BrandForm({ open, onClose, brand }) {
     const isEdit = !!brand;
@@ -35,12 +36,18 @@ function BrandForm({ open, onClose, brand }) {
         });
     }
 
+    const { confirmAction: confirmLogoDelete, dialog: logoDeleteDialog } = useConfirm();
+
     function deleteLogo() {
-        if (!confirm('حذف شعار الماركة؟')) return;
-        router.delete(route('admin.brands.destroyLogo', brand.id), { onSuccess: () => setLogoPreview(null) });
+        confirmLogoDelete('حذف شعار الماركة؟', (cb) => router.delete(route('admin.brands.destroyLogo', brand.id), {
+            ...cb,
+            onSuccess: () => { setLogoPreview(null); cb.onSuccess(); },
+        }));
     }
 
     return (
+        <>
+        {logoDeleteDialog}
         <Modal open={open} onClose={onClose} title={isEdit ? 'تعديل الماركة' : 'إضافة ماركة'} maxWidth="max-w-sm">
             <form onSubmit={submit} className="space-y-3">
                 <Input label="اسم الماركة" value={data.name} onChange={e => setData('name', e.target.value)} error={errors.name} placeholder="Nike" />
@@ -86,6 +93,7 @@ function BrandForm({ open, onClose, brand }) {
                 </div>
             </form>
         </Modal>
+        </>
     );
 }
 
@@ -93,15 +101,17 @@ export default function Brands({ brands }) {
     const [formOpen, setFormOpen] = useState(false);
     const [editBrand, setEditBrand] = useState(null);
     const { delete: destroy } = useForm();
+    const { confirmAction, dialog } = useConfirm();
 
     function handleDelete(brand) {
-        if (!confirm(`حذف "${brand.name}"؟`)) return;
-        destroy(route('admin.brands.destroy', brand.id));
+        confirmAction(`حذف "${brand.name}"؟`,
+            (cb) => destroy(route('admin.brands.destroy', brand.id), cb));
     }
 
     return (
         <>
             <Head title="الماركات — الإدارة" />
+            {dialog}
             <AdminLayout title="🏷️ الماركات">
                 <div className="flex justify-between items-center mb-5">
                     <p className="text-muted text-sm">{brands.length} ماركة</p>

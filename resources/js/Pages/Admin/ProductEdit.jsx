@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import AdminLayout from '../../Layouts/AdminLayout';
+import { useConfirm } from '../../Components/useConfirm';
 
 function Field({ label, error, children }) {
     return (
@@ -57,6 +58,7 @@ export default function ProductEdit({ product, categories, brands }) {
     const [deletingImg, setDeletingImg] = useState(false);
     const [deletingVid, setDeletingVid] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(null);
+    const { confirmAction, dialog } = useConfirm();
 
     const { data, setData, post, processing, errors } = useForm({
         category_id:     product?.category_id ?? '',
@@ -97,18 +99,22 @@ export default function ProductEdit({ product, categories, brands }) {
     }
 
     function deleteImage() {
-        if (!confirm('حذف الصورة؟')) return;
-        setDeletingImg(true);
-        router.delete(route('admin.products.destroyImage', product.id), {
-            onFinish: () => setDeletingImg(false),
+        confirmAction('حذف الصورة؟', (cb) => {
+            setDeletingImg(true);
+            router.delete(route('admin.products.destroyImage', product.id), {
+                ...cb,
+                onFinish: () => { setDeletingImg(false); cb.onFinish(); },
+            });
         });
     }
 
     function deleteVideo() {
-        if (!confirm('حذف الفيديو؟')) return;
-        setDeletingVid(true);
-        router.delete(route('admin.products.destroyVideo', product.id), {
-            onFinish: () => setDeletingVid(false),
+        confirmAction('حذف الفيديو؟', (cb) => {
+            setDeletingVid(true);
+            router.delete(route('admin.products.destroyVideo', product.id), {
+                ...cb,
+                onFinish: () => { setDeletingVid(false); cb.onFinish(); },
+            });
         });
     }
 
@@ -151,6 +157,7 @@ export default function ProductEdit({ product, categories, brands }) {
     return (
         <>
             <Head title={isNew ? 'إضافة منتج جديد' : `تعديل: ${product.name}`} />
+            {dialog}
             <AdminLayout title={isNew ? '➕ إضافة منتج' : `✏️ ${product.name}`}>
 
                 <form onSubmit={submit}>

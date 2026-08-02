@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '../../Layouts/AdminLayout';
 import { Button } from '../../Components/UI';
+import { useConfirm } from '../../Components/useConfirm';
 import axios from 'axios';
 
 export default function Products({ products, categories, search }) {
@@ -9,6 +10,13 @@ export default function Products({ products, categories, search }) {
     const [list, setList] = useState(products);
     const dragItem = useRef(null);
     const dragOverItem = useRef(null);
+    const { confirmAction, dialog } = useConfirm();
+
+    // `list` only seeds from `products` on first render — without this,
+    // deleting/reordering leaves the old array in place until a full
+    // page reload re-mounts the component, even though Inertia already
+    // sent back fresh props.
+    useEffect(() => { setList(products); }, [products]);
 
     function handleSearch(e) {
         e.preventDefault();
@@ -27,13 +35,14 @@ export default function Products({ products, categories, search }) {
     }
 
     function destroy(product) {
-        if (!confirm(`حذف "${product.name}"؟`)) return;
-        router.delete(route('admin.products.destroy', product.id));
+        confirmAction(`حذف "${product.name}"؟`,
+            (cb) => router.delete(route('admin.products.destroy', product.id), cb));
     }
 
     return (
         <>
             <Head title="المنتجات" />
+            {dialog}
             <AdminLayout title="📦 المنتجات">
                 <div className="flex items-center justify-between mb-5 gap-3">
                     <form onSubmit={handleSearch} className="flex-1 max-w-sm">

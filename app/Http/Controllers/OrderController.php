@@ -7,8 +7,11 @@ use App\Models\CourierCompany;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\User;
+use App\Services\PhoneNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -60,7 +63,7 @@ class OrderController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PhoneNumberService $phoneNumbers)
     {
         $data = $request->validate([
             'customer_name'      => 'required|string|max:100',
@@ -78,8 +81,45 @@ class OrderController extends Controller
             'coupon_code'        => 'nullable|string|max:40',
         ]);
 
+        $newAccount = false;
+
         try {
-            $order = DB::transaction(function () use ($data, $request) {
+            $order = DB::transaction(function () use ($data, $request, $phoneNumbers, &$newAccount) {
+                // Guests aren't required to log in to order — but every order
+                // carries a name + phone, so we quietly turn that into a real
+                // account (matched/locked by normalized phone) instead of
+                // leaving it a one-off record with no way back in. A brand
+                // new account gets the phone number itself as its password,
+                // since that's the only credential a guest ever typed in;
+                // the front end tells them so once (see $newAccount below).
+                //
+                // Attribution always follows the typed phone, never the
+                // active session by itself — on a shared browser/device, a
+                // stale login from a previous customer must never silently
+                // absorb someone else's order into the wrong account (that
+                // showed up as other people's orders leaking into "My
+                // Orders"). Only skip the lookup when the logged-in user's
+                // own phone matches what was typed, i.e. they're ordering
+                // for themselves.
+                $normalizedPhone = $phoneNumbers->normalize($data['customer_phone']);
+                $sessionUser = $request->user();
+                if ($sessionUser && $sessionUser->phone === $normalizedPhone) {
+                    $orderUser = $sessionUser;
+                } else {
+                    $orderUser = User::where('phone', $normalizedPhone)->lockForUpdate()->first();
+                    if (! $orderUser) {
+                        $orderUser = User::create([
+                            'name'              => $data['customer_name'],
+                            'phone'             => $normalizedPhone,
+                            'email'             => $normalizedPhone.'@phone.toys141.local',
+                            'email_verified_at' => now(),
+                            'password'          => Hash::make($normalizedPhone),
+                            'role'              => 'customer',
+                        ]);
+                        $newAccount = true;
+                    }
+                }
+
                 // Stock check + decrement (variant-level if the product has size/color options, otherwise product-level)
                 foreach ($data['items'] as $item) {
                     if (empty($item['product_id'])) {
@@ -132,7 +172,7 @@ class OrderController extends Controller
 
                 return Order::create(array_merge($data, [
                     'status' => 'pending',
-                    'user_id' => $request->user()?->id,
+                    'user_id' => $orderUser->id,
                     'discount_percentage' => $discount,
                     'coupon_code' => $couponCode,
                     'coupon_discount' => $couponDiscount,
@@ -146,6 +186,7 @@ class OrderController extends Controller
             'success' => true,
             'order'   => $order,
             'message' => 'تم استلام طلبك! سنتواصل معك قريباً ✅',
+            'account_created' => $newAccount,
         ]);
     }
 

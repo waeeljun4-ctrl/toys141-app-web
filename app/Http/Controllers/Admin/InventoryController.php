@@ -15,7 +15,7 @@ class InventoryController extends Controller
         return Inertia::render('Admin/Inventory', [
             'products' => Product::with(['category:id,name', 'variants'])
                 ->orderBy('sort_order')
-                ->get(['id', 'category_id', 'name', 'image', 'track_stock']),
+                ->get(['id', 'category_id', 'name', 'image', 'track_stock', 'wholesale_price', 'price']),
         ]);
     }
 
@@ -23,6 +23,17 @@ class InventoryController extends Controller
     {
         $data = $request->validate([
             'track_stock' => 'required|boolean',
+        ]);
+
+        $product->update($data);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function updateWholesalePrice(Request $request, Product $product)
+    {
+        $data = $request->validate([
+            'wholesale_price' => 'nullable|numeric|min:0',
         ]);
 
         $product->update($data);

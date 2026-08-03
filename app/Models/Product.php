@@ -13,13 +13,14 @@ class Product extends Model
         'category_id', 'brand_id', 'name', 'name_he', 'name_en',
         'description', 'description_he', 'description_en',
         'image', 'images', 'video', 'video_url', 'badge',
-        'price', 'compare_price', 'is_active', 'sort_order', 'track_stock', 'stock_quantity',
+        'price', 'compare_price', 'wholesale_price', 'is_active', 'sort_order', 'track_stock', 'stock_quantity',
     ];
 
     protected $casts = [
         'is_active'     => 'boolean',
         'price'         => 'float',
         'compare_price' => 'float',
+        'wholesale_price' => 'float',
         'images'        => 'array',
         'track_stock'   => 'boolean',
     ];

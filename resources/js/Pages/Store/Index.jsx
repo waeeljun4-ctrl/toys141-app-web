@@ -267,8 +267,8 @@ function ProductCard({ product, onOpen }) {
             className="group bg-white dark:bg-ink-2 rounded-3xl overflow-hidden border border-cream-3 dark:border-white/10 shadow-sm hover:shadow-2xl hover:shadow-ink/10 hover:-translate-y-1.5 hover:border-transparent transition-all duration-300 cursor-pointer">
 
             <div className="h-44 bg-gradient-to-br from-cream-2 to-cream-3 dark:from-ink dark:to-ink-2 flex items-center justify-center text-4xl relative overflow-hidden">
-                {product.image
-                    ? <img src={`/storage/${product.image}`} alt={localField(product, 'name', locale)}
+                {(product.image || product.images?.[0])
+                    ? <img src={`/storage/${product.image || product.images[0]}`} alt={localField(product, 'name', locale)}
                         className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${soldOut ? 'grayscale opacity-50' : ''}`} />
                     : '🧸'
                 }

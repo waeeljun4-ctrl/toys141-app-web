@@ -30,9 +30,10 @@ function ThemeToggle() {
 
 function AdminLink() {
     const { auth } = usePage().props;
+    const { t } = useLocale();
     if (auth?.user?.role !== 'admin') return null;
     return (
-        <a href={route('admin.dashboard')} title="لوحة التحكم"
+        <a href={route('admin.dashboard')} title={t('dashboardTooltip')}
             className="w-9 h-9 rounded-xl bg-cream-2 dark:bg-ink-2 border border-cream-3 dark:border-white/10 flex items-center justify-center text-sm text-ink dark:text-cream hover:bg-accent-pale hover:border-accent hover:text-accent transition-colors shrink-0">
             ⚙️
         </a>
@@ -41,12 +42,13 @@ function AdminLink() {
 
 function AccountLink() {
     const { auth } = usePage().props;
+    const { t } = useLocale();
     const [open, setOpen] = useState(false);
     const user = auth?.user;
 
     if (!user) {
         return (
-            <a href="/login" title="تسجيل الدخول"
+            <a href="/login" title={t('loginTooltip')}
                 className="w-9 h-9 rounded-xl bg-cream-2 dark:bg-ink-2 border border-cream-3 dark:border-white/10 flex items-center justify-center text-sm text-ink dark:text-cream hover:bg-accent-pale hover:border-accent hover:text-accent transition-colors shrink-0">
                 👤
             </a>
@@ -70,7 +72,7 @@ function AccountLink() {
                         </div>
                         <Link href="/logout" method="post" as="button"
                             className="w-full text-right px-3.5 py-2.5 text-sm font-bold text-red-500 hover:bg-cream-2 dark:hover:bg-ink transition-colors">
-                            🚪 تسجيل الخروج
+                            {t('logout')}
                         </Link>
                     </div>
                 </>
@@ -196,11 +198,11 @@ function HeroSlider({ slides }) {
     );
 }
 
-function uniqueSizes(variants) {
+function uniqueSizes(variants, oneSizeLabel) {
     const seen = new Set();
     const out = [];
     for (const v of (variants || [])) {
-        const size = v.size || 'مقاس واحد';
+        const size = v.size || oneSizeLabel;
         if (!seen.has(size)) { seen.add(size); out.push(size); }
     }
     return out;
@@ -208,10 +210,11 @@ function uniqueSizes(variants) {
 
 function ProductCard({ product, onOpen }) {
     const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
-    const { locale } = useLocale();
+    const { locale, t } = useLocale();
     const videoRef = useRef(null);
+    const cardRef = useRef(null);
     const [hovering, setHovering] = useState(false);
-    const sizes = uniqueSizes(product.variants);
+    const sizes = uniqueSizes(product.variants, t('oneSize'));
     const discount = product.compare_price && product.compare_price > product.price
         ? Math.round((1 - product.price / product.compare_price) * 100)
         : null;
@@ -237,8 +240,29 @@ function ProductCard({ product, onOpen }) {
         }
     }
 
+    // Touch devices never fire mouseenter/mouseleave — instead, autoplay the
+    // preview video once the card scrolls into view, so a finger swiping
+    // past it on mobile gets the same preview a mouse hover gives on desktop.
+    useEffect(() => {
+        if (!product.video) return;
+        if (typeof window === 'undefined' || !window.matchMedia('(hover: none)').matches) return;
+        const el = cardRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(([entry]) => {
+            setHovering(entry.isIntersecting);
+            if (entry.isIntersecting) {
+                videoRef.current?.play().catch(() => {});
+            } else if (videoRef.current) {
+                videoRef.current.pause();
+                videoRef.current.currentTime = 0;
+            }
+        }, { threshold: 0.6 });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [product.video]);
+
     return (
-        <div onClick={() => onOpen(product)}
+        <div ref={cardRef} onClick={() => onOpen(product)}
             onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
             className="group bg-white dark:bg-ink-2 rounded-3xl overflow-hidden border border-cream-3 dark:border-white/10 shadow-sm hover:shadow-2xl hover:shadow-ink/10 hover:-translate-y-1.5 hover:border-transparent transition-all duration-300 cursor-pointer">
 
@@ -250,7 +274,7 @@ function ProductCard({ product, onOpen }) {
                 }
                 {soldOut && (
                     <div className="absolute inset-0 bg-ink/50 flex items-center justify-center z-10">
-                        <span className="bg-white text-ink text-xs font-black px-3 py-1.5 rounded-full">نفذت الكمية</span>
+                        <span className="bg-white text-ink text-xs font-black px-3 py-1.5 rounded-full">{t('soldOutLabel')}</span>
                     </div>
                 )}
                 {product.video && (
@@ -288,7 +312,7 @@ function ProductCard({ product, onOpen }) {
                     {discount && <span className="text-xs text-muted line-through">{product.compare_price}₪</span>}
                     <span className="text-lg font-black text-accent">{product.price}₪</span>
                 </div>
-                {lowStock && <p className="text-[11px] font-bold text-orange-500 mt-1">باقي {totalStock} فقط!</p>}
+                {lowStock && <p className="text-[11px] font-bold text-orange-500 mt-1">{t('lowStockLabel')(totalStock)}</p>}
             </div>
         </div>
     );
@@ -340,6 +364,7 @@ function StoreContent({ heroSlides, categories, brands, products }) {
 
     return (
         <div className={`min-h-screen bg-cream dark:bg-ink transition-colors ${fontClass}`}>
+            <Head title={t('storeTitle')} />
             {/* Top bar */}
             <div className="bg-ink text-center text-xs py-2 text-white/50 tracking-wide">
                 🚚 {t('topBanner')}
@@ -438,7 +463,7 @@ function StoreContent({ heroSlides, categories, brands, products }) {
 
             {/* Categories showcase — carousel */}
             <div className="py-14 px-4 bg-cream-2/60 dark:bg-transparent">
-                <p className="text-center text-accent text-xs font-black tracking-[0.2em] uppercase mb-2">تصفّح حسب النوع</p>
+                <p className="text-center text-accent text-xs font-black tracking-[0.2em] uppercase mb-2">{t('browseByType')}</p>
                 <h2 className="font-display text-3xl font-bold text-ink dark:text-cream text-center mb-8">{t('categoriesLabel')}</h2>
                 <div className="relative max-w-6xl mx-auto">
                     <button onClick={() => scrollCats(catsRef, dict.dir, 1)}
@@ -557,16 +582,16 @@ function StoreContent({ heroSlides, categories, brands, products }) {
 
                     {/* Legal */}
                     <div>
-                        <p className="text-white text-xs font-black tracking-widest uppercase mb-3">روابط</p>
+                        <p className="text-white text-xs font-black tracking-widest uppercase mb-3">{t('linksHeading')}</p>
                         <ul className="space-y-2">
-                            <li><a href="/privacy" className="text-white/40 hover:text-accent text-xs transition-colors">سياسة الخصوصية</a></li>
-                            <li><a href="/terms" className="text-white/40 hover:text-accent text-xs transition-colors">شروط الاستخدام</a></li>
+                            <li><a href="/privacy" className="text-white/40 hover:text-accent text-xs transition-colors">{t('privacyPolicy')}</a></li>
+                            <li><a href="/terms" className="text-white/40 hover:text-accent text-xs transition-colors">{t('termsOfUse')}</a></li>
                         </ul>
                     </div>
 
                     {/* Contact */}
                     <div>
-                        <p className="text-white text-xs font-black tracking-widest uppercase mb-3">تواصل معنا</p>
+                        <p className="text-white text-xs font-black tracking-widest uppercase mb-3">{t('contactUsHeading')}</p>
                         <div className="flex flex-col items-center sm:items-start gap-2">
                             {siteSettings?.whatsapp_number && (
                                 <a href={`https://wa.me/${siteSettings.whatsapp_number}`} target="_blank" rel="noreferrer"
@@ -664,18 +689,15 @@ function FAQ() {
 
 export default function Index({ heroSlides, categories, brands, products }) {
     return (
-        <>
-            <Head title="المتجر" />
-            <ThemeProvider>
-                <LocaleProvider>
-                    <WishlistProvider>
-                        <CartProvider>
-                            <StoreContent heroSlides={heroSlides} categories={categories} brands={brands} products={products} />
-                            <InstallBanner />
-                        </CartProvider>
-                    </WishlistProvider>
-                </LocaleProvider>
-            </ThemeProvider>
-        </>
+        <ThemeProvider>
+            <LocaleProvider>
+                <WishlistProvider>
+                    <CartProvider>
+                        <StoreContent heroSlides={heroSlides} categories={categories} brands={brands} products={products} />
+                        <InstallBanner />
+                    </CartProvider>
+                </WishlistProvider>
+            </LocaleProvider>
+        </ThemeProvider>
     );
 }

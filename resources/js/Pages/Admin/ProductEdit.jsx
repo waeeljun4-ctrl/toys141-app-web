@@ -52,11 +52,16 @@ export default function ProductEdit({ product, categories, brands }) {
     const isNew = !product;
     const imgRef = useRef(null);
     const vidRef = useRef(null);
+    const galleryRef = useRef(null);
     const [imgPreview, setImgPreview] = useState(null);
     const [vidPreview, setVidPreview] = useState(null);
     const [vidFileName, setVidFileName] = useState(null);
     const [deletingImg, setDeletingImg] = useState(false);
     const [deletingVid, setDeletingVid] = useState(false);
+    const [deletingGalleryIdx, setDeletingGalleryIdx] = useState(null);
+    const [newGalleryFiles, setNewGalleryFiles] = useState([]);
+    const [newGalleryPreviews, setNewGalleryPreviews] = useState([]);
+    const MAX_GALLERY = 10;
     const [uploadProgress, setUploadProgress] = useState(null);
     const { confirmAction, dialog } = useConfirm();
 
@@ -76,10 +81,12 @@ export default function ProductEdit({ product, categories, brands }) {
         is_active:       product?.is_active ?? true,
         sort_order:      product?.sort_order ?? 0,
         image:           null,
+        new_images:      [],
         video:           null,
         video_url:       product?.video_url ?? '',
         variants: (product?.variants ?? []).map(v => ({
-            id: v.id, size: v.size ?? '', color: v.color ?? '', color_hex: v.color_hex ?? '', stock: v.stock ?? 0, sku: v.sku ?? '',
+            id: v.id, size: v.size ?? '', color: v.color ?? '', color_he: v.color_he ?? '', color_en: v.color_en ?? '',
+            color_hex: v.color_hex ?? '', stock: v.stock ?? 0, sku: v.sku ?? '',
         })),
     });
 
@@ -118,8 +125,37 @@ export default function ProductEdit({ product, categories, brands }) {
         });
     }
 
+    function handleGalleryChange(e) {
+        const files = Array.from(e.target.files || []);
+        e.target.value = '';
+        if (!files.length) return;
+        const room = MAX_GALLERY - (product?.images?.length ?? 0) - newGalleryFiles.length;
+        const accepted = files.slice(0, Math.max(0, room));
+        const updated = [...newGalleryFiles, ...accepted];
+        setNewGalleryFiles(updated);
+        setNewGalleryPreviews(prev => [...prev, ...accepted.map(f => URL.createObjectURL(f))]);
+        setData('new_images', updated);
+    }
+
+    function removeNewGalleryFile(i) {
+        const updated = newGalleryFiles.filter((_, idx) => idx !== i);
+        setNewGalleryFiles(updated);
+        setNewGalleryPreviews(prev => prev.filter((_, idx) => idx !== i));
+        setData('new_images', updated);
+    }
+
+    function deleteGalleryImage(index) {
+        confirmAction('حذف هاي الصورة من المعرض؟', (cb) => {
+            setDeletingGalleryIdx(index);
+            router.delete(route('admin.products.destroyGalleryImage', [product.id, index]), {
+                ...cb,
+                onFinish: () => { setDeletingGalleryIdx(null); cb.onFinish(); },
+            });
+        });
+    }
+
     function addVariantRow() {
-        setData('variants', [...data.variants, { size: '', color: '', color_hex: '', stock: 0, sku: '' }]);
+        setData('variants', [...data.variants, { size: '', color: '', color_he: '', color_en: '', color_hex: '', stock: 0, sku: '' }]);
     }
 
     function updateVariant(index, field, value) {
@@ -144,6 +180,9 @@ export default function ProductEdit({ product, categories, brands }) {
                 setImgPreview(null);
                 setVidPreview(null);
                 setVidFileName(null);
+                setNewGalleryFiles([]);
+                setNewGalleryPreviews([]);
+                setData('new_images', []);
                 if (isNew) router.visit(route('admin.products.index'));
             },
             onError: () => setUploadProgress(null),
@@ -222,6 +261,43 @@ export default function ProductEdit({ product, categories, brands }) {
                                     )}
                                 </div>
                                 {errors.image && <p className="text-xs text-red-500 mt-1">{errors.image}</p>}
+                            </div>
+
+                            {/* معرض الصور (اختياري) */}
+                            <div className="bg-white rounded-2xl border border-cream-3 p-4">
+                                <p className="font-black text-ink text-sm mb-1">🖼️ معرض الصور (اختياري)</p>
+                                <p className="text-xs text-muted mb-3">صور إضافية تظهر بمعرض تفاصيل المنتج، فوق صورة الغلاف — حتى {MAX_GALLERY} صور.</p>
+
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {(product?.images ?? []).map((path, i) => (
+                                        <div key={path} className="relative w-20 h-20">
+                                            <img src={`/storage/${path}`} className="w-20 h-20 object-cover rounded-xl border border-cream-3" />
+                                            <button type="button" onClick={() => deleteGalleryImage(i)} disabled={deletingGalleryIdx === i}
+                                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center leading-none disabled:opacity-50">
+                                                {deletingGalleryIdx === i ? '⏳' : '✕'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {newGalleryPreviews.map((src, i) => (
+                                        <div key={src} className="relative w-20 h-20">
+                                            <img src={src} className="w-20 h-20 object-cover rounded-xl border-2 border-green-400" />
+                                            <button type="button" onClick={() => removeNewGalleryFile(i)}
+                                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center leading-none">✕</button>
+                                        </div>
+                                    ))}
+                                    {((product?.images?.length ?? 0) + newGalleryFiles.length) < MAX_GALLERY && (
+                                        <label onClick={() => galleryRef.current.click()}
+                                            className="w-20 h-20 flex flex-col items-center justify-center gap-0.5 border-2 border-dashed border-cream-3 rounded-xl cursor-pointer text-muted hover:border-accent hover:text-accent transition-colors">
+                                            <span className="text-xl leading-none">📷</span>
+                                            <span className="text-[10px] font-bold">إضافة</span>
+                                        </label>
+                                    )}
+                                </div>
+                                <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryChange} />
+                                {newGalleryFiles.length > 0 && (
+                                    <p className="text-xs text-green-600 font-bold">✅ {newGalleryFiles.length} صورة جاهزة للرفع — رح تنحفظ لما تضغط "حفظ"</p>
+                                )}
+                                {errors.new_images && <p className="text-xs text-red-500 mt-1">{errors.new_images}</p>}
                             </div>
 
                             {/* فيديو المنتج */}
@@ -368,6 +444,12 @@ export default function ProductEdit({ product, categories, brands }) {
                                         <div className="col-span-1">
                                             <button type="button" onClick={() => removeVariant(i)}
                                                 className="w-full h-[42px] rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">🗑️</button>
+                                        </div>
+                                        <div className="col-span-6">
+                                            <Input label="اللون بالعبري ✡ (اختياري)" value={v.color_he} onChange={e => updateVariant(i, 'color_he', e.target.value)} placeholder="אדום" />
+                                        </div>
+                                        <div className="col-span-6">
+                                            <Input label="اللون بالإنجليزي 🌍 (اختياري)" value={v.color_en} onChange={e => updateVariant(i, 'color_en', e.target.value)} placeholder="Red" />
                                         </div>
                                     </div>
                                 ))}

@@ -38,7 +38,7 @@ export default function CartDrawer() {
             setCoupon({ code: myCoupon.code, discount: data.discount, message: data.message });
             setMyCoupon(null);
         } catch (e) {
-            showToast(e.response?.data?.message || 'كود الخصم غير صالح');
+            showToast(e.response?.data?.message || t('invalidCoupon'));
         }
         setCouponChecking(false);
     }
@@ -55,7 +55,7 @@ export default function CartDrawer() {
             setCoupon({ code: couponCode.trim(), discount: data.discount, message: data.message });
         } catch (e) {
             setCoupon(null);
-            showToast(e.response?.data?.message || 'كود الخصم غير صالح');
+            showToast(e.response?.data?.message || t('invalidCoupon'));
         }
         setCouponChecking(false);
     }
@@ -87,7 +87,7 @@ export default function CartDrawer() {
                 coupon_code: coupon?.code || null,
             });
             if (data.account_created) {
-                showToast(`${t('successOrder')} — أنشأنا لك حساب تلقائياً، رقم هاتفك هو كلمة السر لتسجيل الدخول لاحقاً 🔑`, 7000);
+                showToast(`${t('successOrder')} — ${t('accountCreatedNote')}`, 7000);
             } else {
                 showToast(t('successOrder'));
             }
@@ -203,11 +203,11 @@ export default function CartDrawer() {
                         {!coupon && myCoupon && (
                             <div className="flex items-center justify-between bg-accent-pale rounded-lg px-3 py-2">
                                 <span className="text-xs font-bold text-accent">
-                                    🎁 عندك خصم خاص {myCoupon.type === 'percentage' ? `${myCoupon.value}%` : `${myCoupon.value}₪`}!
+                                    {t('privateCouponLabel')(myCoupon.type === 'percentage', myCoupon.value)}
                                 </span>
                                 <button onClick={activateMyCoupon} disabled={couponChecking}
                                     className="text-xs font-black bg-accent text-white px-3 py-1 rounded-lg hover:bg-accent-dark transition-colors disabled:opacity-50">
-                                    {couponChecking ? '⏳' : 'تفعيل'}
+                                    {couponChecking ? '⏳' : t('activate')}
                                 </button>
                             </div>
                         )}
@@ -215,20 +215,20 @@ export default function CartDrawer() {
                         {/* Coupon */}
                         {coupon ? (
                             <div className="flex items-center justify-between bg-accent-pale rounded-lg px-3 py-2">
-                                <span className="text-xs font-bold text-accent">🎟️ {coupon.code} — خصم {coupon.discount}₪</span>
+                                <span className="text-xs font-bold text-accent">{t('couponAppliedLabel')(coupon.code, coupon.discount)}</span>
                                 <button onClick={removeCoupon} className="text-xs text-muted hover:text-red-500">✕</button>
                             </div>
                         ) : (
                             <div className="flex gap-2">
                                 <input
                                     className="flex-1 px-3 py-2 border-2 border-cream-3 dark:border-white/10 focus:border-accent rounded-lg text-sm text-ink dark:text-cream bg-cream dark:bg-ink outline-none"
-                                    placeholder="كود الخصم (اختياري)"
+                                    placeholder={t('couponPlaceholder')}
                                     value={couponCode}
                                     onChange={e => setCouponCode(e.target.value.toUpperCase())}
                                 />
                                 <button onClick={applyCoupon} disabled={couponChecking || !couponCode.trim()}
                                     className="px-4 bg-cream-2 dark:bg-ink-2 border-2 border-cream-3 dark:border-white/10 rounded-lg text-xs font-bold text-ink dark:text-cream hover:border-accent transition-colors disabled:opacity-50">
-                                    {couponChecking ? '⏳' : 'تطبيق'}
+                                    {couponChecking ? '⏳' : t('apply')}
                                 </button>
                             </div>
                         )}

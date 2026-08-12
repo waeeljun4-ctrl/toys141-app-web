@@ -61,6 +61,8 @@ class ProductController extends Controller
             'description_he' => 'nullable|string|max:1000',
             'description_en' => 'nullable|string|max:1000',
             'image'          => 'nullable|image|max:10240',
+            'new_images'     => 'nullable|array|max:10',
+            'new_images.*'   => 'image|max:10240',
             'video'          => 'nullable|mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/webm|max:2097152',
             'video_url'      => 'nullable|max:500',
             'badge'          => 'nullable|string|max:30',
@@ -73,6 +75,8 @@ class ProductController extends Controller
             'variants.*.id'            => 'nullable|integer|exists:product_variants,id',
             'variants.*.size'          => 'nullable|string|max:20',
             'variants.*.color'         => 'nullable|string|max:30',
+            'variants.*.color_he'      => 'nullable|string|max:40',
+            'variants.*.color_en'      => 'nullable|string|max:40',
             'variants.*.color_hex'     => 'nullable|string|max:7',
             'variants.*.stock'         => 'nullable|integer|min:0',
             'variants.*.sku'           => 'nullable|string|max:60',
@@ -87,6 +91,8 @@ class ProductController extends Controller
             $payload = [
                 'size'       => $variant['size']       ?? null,
                 'color'      => $variant['color']      ?? null,
+                'color_he'   => $variant['color_he']   ?? null,
+                'color_en'   => $variant['color_en']   ?? null,
                 'color_hex'  => $variant['color_hex']  ?? null,
                 'stock'      => $variant['stock']       ?? 0,
                 'sku'        => $variant['sku']        ?: null,
@@ -116,6 +122,13 @@ class ProductController extends Controller
         if ($request->hasFile('video')) {
             $data['video'] = $videoCompressor->compressAndStore($request->file('video'), 'products/videos');
         }
+        if ($request->hasFile('new_images')) {
+            $data['images'] = array_map(
+                fn ($file) => $imageCompressor->compressAndStore($file, 'products'),
+                $request->file('new_images')
+            );
+        }
+        unset($data['new_images']);
 
         $product = Product::create($data);
         $this->syncVariants($product, $variants);
@@ -152,12 +165,31 @@ class ProductController extends Controller
             if ($product->video) Storage::disk('public')->delete($product->video);
             $data['video'] = $videoCompressor->compressAndStore($request->file('video'), 'products/videos');
         }
+        if ($request->hasFile('new_images')) {
+            $newPaths = array_map(
+                fn ($file) => $imageCompressor->compressAndStore($file, 'products'),
+                $request->file('new_images')
+            );
+            $data['images'] = [...($product->images ?? []), ...$newPaths];
+        }
+        unset($data['new_images']);
 
         $product->update($data);
         $this->syncVariants($product, $variants);
         $this->syncStockTracking($product, $variants);
 
         return back()->with('success', 'تم تحديث المنتج ✅');
+    }
+
+    public function destroyGalleryImage(Product $product, int $index)
+    {
+        $images = $product->images ?? [];
+        if (isset($images[$index])) {
+            Storage::disk('public')->delete($images[$index]);
+            unset($images[$index]);
+            $product->update(['images' => array_values($images)]);
+        }
+        return back()->with('success', 'تم حذف الصورة');
     }
 
     public function destroyImage(Product $product)
@@ -190,6 +222,7 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         if ($product->image) Storage::disk('public')->delete($product->image);
+        foreach ($product->images ?? [] as $path) Storage::disk('public')->delete($path);
         $product->delete();
         return back()->with('success', 'تم حذف المنتج');
     }

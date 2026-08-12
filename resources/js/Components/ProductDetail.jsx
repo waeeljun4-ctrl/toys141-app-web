@@ -53,6 +53,9 @@ export default function ProductDetail({ product, onClose }) {
         ? Math.round((1 - product.price / product.compare_price) * 100)
         : null;
 
+    const galleryImages = [product.image, ...(product.images || [])].filter(Boolean);
+    const [activeImage, setActiveImage] = useState(galleryImages[0] ?? null);
+
     function handleAddCart() {
         if (outOfStock) return;
         addItem({ ...product, name: pName }, { size, color }, qty);
@@ -90,12 +93,24 @@ export default function ProductDetail({ product, onClose }) {
                             controls autoPlay muted loop playsInline className="w-full h-full object-contain" />
                     </div>
                 ) : (
-                    <div className="mx-4 mt-4 h-56 bg-gradient-to-br from-cream-2 to-cream-3 dark:from-ink dark:to-ink-2 rounded-xl overflow-hidden flex items-center justify-center text-5xl">
-                        {product.image
-                            ? <img src={`/storage/${product.image}`} alt={pName} className="w-full h-full object-cover" />
-                            : '👕'
-                        }
-                    </div>
+                    <>
+                        <div className="mx-4 mt-4 h-56 bg-gradient-to-br from-cream-2 to-cream-3 dark:from-ink dark:to-ink-2 rounded-xl overflow-hidden flex items-center justify-center text-5xl">
+                            {activeImage
+                                ? <img src={`/storage/${activeImage}`} alt={pName} className="w-full h-full object-cover" />
+                                : '👕'
+                            }
+                        </div>
+                        {galleryImages.length > 1 && (
+                            <div className="mx-4 mt-2 flex gap-2 overflow-x-auto scrollbar-hide">
+                                {galleryImages.map(path => (
+                                    <button key={path} type="button" onClick={() => setActiveImage(path)}
+                                        className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${activeImage === path ? 'border-accent' : 'border-cream-3 dark:border-white/10 opacity-70 hover:opacity-100'}`}>
+                                        <img src={`/storage/${path}`} alt="" className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
 
                 <div className="px-4 pb-6 mt-4 space-y-4">
@@ -135,7 +150,7 @@ export default function ProductDetail({ product, onClose }) {
                                         {v.color_hex && (
                                             <span className="w-3.5 h-3.5 rounded-full border border-cream-3 dark:border-white/20 shrink-0" style={{ background: v.color_hex }} />
                                         )}
-                                        {v.color}
+                                        {(locale === 'he' ? v.color_he : locale === 'en' ? v.color_en : null)?.trim() || v.color}
                                     </button>
                                 ))}
                             </div>
@@ -158,7 +173,7 @@ export default function ProductDetail({ product, onClose }) {
                         <p className="text-sm text-red-500 font-bold">{t('outOfStockMsg')}</p>
                     )}
                     {lowStock && (
-                        <p className="text-sm text-orange-500 font-bold">⚠️ باقي {stock} قطع فقط!</p>
+                        <p className="text-sm text-orange-500 font-bold">{t('lowStockPiecesLabel')(stock)}</p>
                     )}
 
                     {/* Price */}

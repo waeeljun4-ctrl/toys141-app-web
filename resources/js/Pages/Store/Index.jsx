@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { CartProvider, useCart } from '../../Components/CartContext';
 import { WishlistProvider, useWishlist } from '../../Components/WishlistContext';
 import { LocaleProvider, useLocale } from '../../Components/LocaleContext';
@@ -7,7 +7,7 @@ import { ThemeProvider, useTheme } from '../../Components/ThemeContext';
 import { localField } from '../../i18n';
 import CartDrawer from '../../Components/CartDrawer';
 import WishlistDrawer from '../../Components/WishlistDrawer';
-import ProductDetail from '../../Components/ProductDetail';
+import ProductCard from '../../Components/ProductCard';
 import WhatsAppButton from '../../Components/WhatsAppButton';
 import InstallBanner from '../../Components/InstallBanner';
 
@@ -198,126 +198,6 @@ function HeroSlider({ slides }) {
     );
 }
 
-function uniqueSizes(variants, oneSizeLabel) {
-    const seen = new Set();
-    const out = [];
-    for (const v of (variants || [])) {
-        const size = v.size || oneSizeLabel;
-        if (!seen.has(size)) { seen.add(size); out.push(size); }
-    }
-    return out;
-}
-
-function ProductCard({ product, onOpen }) {
-    const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
-    const { locale, t } = useLocale();
-    const videoRef = useRef(null);
-    const cardRef = useRef(null);
-    const [hovering, setHovering] = useState(false);
-    const sizes = uniqueSizes(product.variants, t('oneSize'));
-    const discount = product.compare_price && product.compare_price > product.price
-        ? Math.round((1 - product.price / product.compare_price) * 100)
-        : null;
-    const hasVariants = product.variants?.length > 0;
-    const totalStock = hasVariants
-        ? product.variants.reduce((s, v) => s + (v.stock || 0), 0)
-        : (product.stock_quantity ?? Infinity);
-    const soldOut = product.track_stock && totalStock <= 0;
-    const lowStock = product.track_stock && !soldOut && totalStock <= 10;
-
-    function handleMouseEnter() {
-        if (!product.video) return;
-        setHovering(true);
-        videoRef.current?.play().catch(() => {});
-    }
-
-    function handleMouseLeave() {
-        if (!product.video) return;
-        setHovering(false);
-        if (videoRef.current) {
-            videoRef.current.pause();
-            videoRef.current.currentTime = 0;
-        }
-    }
-
-    // Touch devices never fire mouseenter/mouseleave — instead, autoplay the
-    // preview video once the card scrolls into view, so a finger swiping
-    // past it on mobile gets the same preview a mouse hover gives on desktop.
-    useEffect(() => {
-        if (!product.video) return;
-        if (typeof window === 'undefined' || !window.matchMedia('(hover: none)').matches) return;
-        const el = cardRef.current;
-        if (!el) return;
-        const observer = new IntersectionObserver(([entry]) => {
-            setHovering(entry.isIntersecting);
-            if (entry.isIntersecting) {
-                videoRef.current?.play().catch(() => {});
-            } else if (videoRef.current) {
-                videoRef.current.pause();
-                videoRef.current.currentTime = 0;
-            }
-        }, { threshold: 0.6 });
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, [product.video]);
-
-    return (
-        <div ref={cardRef} onClick={() => onOpen(product)}
-            onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-            className="group bg-white dark:bg-ink-2 rounded-3xl overflow-hidden border border-cream-3 dark:border-white/10 shadow-sm hover:shadow-2xl hover:shadow-ink/10 hover:-translate-y-1.5 hover:border-transparent transition-all duration-300 cursor-pointer">
-
-            <div className="h-44 bg-gradient-to-br from-cream-2 to-cream-3 dark:from-ink dark:to-ink-2 flex items-center justify-center text-4xl relative overflow-hidden">
-                {(product.image || product.images?.[0])
-                    ? <img src={`/storage/${product.image || product.images[0]}`} alt={localField(product, 'name', locale)}
-                        className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${soldOut ? 'grayscale opacity-50' : ''}`} />
-                    : '🧸'
-                }
-                {soldOut && (
-                    <div className="absolute inset-0 bg-ink/50 flex items-center justify-center z-10">
-                        <span className="bg-white text-ink text-xs font-black px-3 py-1.5 rounded-full">{t('soldOutLabel')}</span>
-                    </div>
-                )}
-                {product.video && (
-                    <video ref={videoRef} src={`/storage/${product.video}`} muted loop playsInline preload="none"
-                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 pointer-events-none ${hovering ? 'opacity-100' : 'opacity-0'}`} />
-                )}
-                <button onClick={e => { e.stopPropagation(); toggleWishlist({ ...product, name: localField(product, 'name', locale) }); }}
-                    className={`absolute top-2.5 start-2.5 w-8 h-8 rounded-full flex items-center justify-center text-sm z-10 shadow-sm backdrop-blur-sm transition-colors
-                        ${inWishlist(product.id) ? 'bg-red-500 text-white' : 'bg-white/85 text-ink hover:bg-white'}`}>
-                    {inWishlist(product.id) ? '♥' : '♡'}
-                </button>
-                {discount && (
-                    <span className="absolute top-2.5 end-2.5 bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-lg shadow-sm z-10">-{discount}%</span>
-                )}
-                {!discount && product.badge && (
-                    <span className="absolute top-2.5 end-2.5 bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm z-10">
-                        {product.badge}
-                    </span>
-                )}
-            </div>
-
-            <div className="p-3.5">
-                {product.brand && <p className="text-xs font-bold tracking-widest uppercase text-accent mb-1">{product.brand.name}</p>}
-                <p className="text-sm font-extrabold text-ink dark:text-cream mb-1.5 leading-tight">{localField(product, 'name', locale)}</p>
-
-                {sizes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                        {sizes.slice(0, 6).map(s => (
-                            <span key={s} className="text-[11px] font-bold text-muted bg-cream-2 dark:bg-white/5 rounded-md px-1.5 py-0.5">{s}</span>
-                        ))}
-                    </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                    {discount && <span className="text-xs text-muted line-through">{product.compare_price}₪</span>}
-                    <span className="text-lg font-black text-accent">{product.price}₪</span>
-                </div>
-                {lowStock && <p className="text-[11px] font-bold text-orange-500 mt-1">{t('lowStockLabel')(totalStock)}</p>}
-            </div>
-        </div>
-    );
-}
-
 function StoreContent({ heroSlides, categories, brands, products }) {
     const { count, setOpen: setCartOpen } = useCart();
     const { count: wishCount, setOpen: setWishOpen } = useWishlist();
@@ -327,7 +207,6 @@ function StoreContent({ heroSlides, categories, brands, products }) {
     const [expandedParent, setExpandedParent] = useState(null);
     const [activeBrand, setActiveBrand] = useState(null);
     const [search, setSearch] = useState('');
-    const [detailProduct, setDetailProduct] = useState(null);
     const [mobileBrandsOpen, setMobileBrandsOpen] = useState(false);
     const catsRef = useRef(null);
 
@@ -545,7 +424,7 @@ function StoreContent({ heroSlides, categories, brands, products }) {
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-3 pb-10">
                             {filtered.map(p => (
-                                <ProductCard key={p.id} product={p} onOpen={setDetailProduct} />
+                                <ProductCard key={p.id} product={p} />
                             ))}
                         </div>
                     )}
@@ -648,10 +527,7 @@ function StoreContent({ heroSlides, categories, brands, products }) {
 
             {/* Overlays */}
             <CartDrawer />
-            <WishlistDrawer onOpenProduct={setDetailProduct} />
-            {detailProduct && (
-                <ProductDetail product={detailProduct} onClose={() => setDetailProduct(null)} />
-            )}
+            <WishlistDrawer onOpenProduct={p => router.visit(`/product/${p.id}`)} />
             <WhatsAppButton />
         </div>
     );

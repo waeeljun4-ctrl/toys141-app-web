@@ -30,6 +30,7 @@ use Inertia\Inertia;
 
 // ── PUBLIC STORE ──
 Route::get('/', [StoreController::class, 'index'])->name('home');
+Route::get('/product/{product}', [StoreController::class, 'product'])->name('store.product');
 
 // ── LEGAL ──
 Route::view('/privacy', 'legal.privacy')->name('privacy');

@@ -55,8 +55,10 @@ class BackfillTranslations extends Command
             $this->line("  - #{$p->id} {$p->name}");
         });
 
-        $this->info('Translating product variant colors...');
-        ProductVariant::whereNotNull('color')->get()->each(function (ProductVariant $v) use ($translator) {
+        $this->info('Translating product variants (size + color)...');
+        ProductVariant::query()->get()->each(function (ProductVariant $v) use ($translator) {
+            $v->size_he = $translator->translate($v->size, 'he');
+            $v->size_en = $translator->translate($v->size, 'en');
             $v->color_he = $translator->translate($v->color, 'he');
             $v->color_en = $translator->translate($v->color, 'en');
             $v->save();

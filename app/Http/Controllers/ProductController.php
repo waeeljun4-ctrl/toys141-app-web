@@ -95,6 +95,8 @@ class ProductController extends Controller
         foreach ($variants ?? [] as $i => $variant) {
             $payload = [
                 'size'       => $variant['size']       ?? null,
+                'size_he'    => $this->translator->translate($variant['size'] ?? null, 'he'),
+                'size_en'    => $this->translator->translate($variant['size'] ?? null, 'en'),
                 'color'      => $variant['color']      ?? null,
                 'color_he'   => $this->translator->translate($variant['color'] ?? null, 'he'),
                 'color_en'   => $this->translator->translate($variant['color'] ?? null, 'en'),

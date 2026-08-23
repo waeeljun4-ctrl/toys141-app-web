@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\ImageCompressionService;
+use App\Services\TranslationService;
 use App\Services\VideoCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,10 @@ use Inertia\Inertia;
 
 class ProductController extends Controller
 {
+    public function __construct(private TranslationService $translator)
+    {
+    }
+
     public function index(Request $request)
     {
         $query = Product::with(['category:id,name', 'brand:id,name'])->orderBy('sort_order');
@@ -91,8 +96,8 @@ class ProductController extends Controller
             $payload = [
                 'size'       => $variant['size']       ?? null,
                 'color'      => $variant['color']      ?? null,
-                'color_he'   => $variant['color_he']   ?? null,
-                'color_en'   => $variant['color_en']   ?? null,
+                'color_he'   => $this->translator->translate($variant['color'] ?? null, 'he'),
+                'color_en'   => $this->translator->translate($variant['color'] ?? null, 'en'),
                 'color_hex'  => $variant['color_hex']  ?? null,
                 'stock'      => $variant['stock']       ?? 0,
                 'sku'        => $variant['sku']        ?: null,
@@ -113,6 +118,10 @@ class ProductController extends Controller
     public function store(Request $request, ImageCompressionService $imageCompressor, VideoCompressionService $videoCompressor)
     {
         $data = $request->validate($this->validateFields());
+        $data['name_he'] = $this->translator->translate($data['name'], 'he');
+        $data['name_en'] = $this->translator->translate($data['name'], 'en');
+        $data['description_he'] = $this->translator->translate($data['description'] ?? null, 'he');
+        $data['description_en'] = $this->translator->translate($data['description'] ?? null, 'en');
         $variants = $data['variants'] ?? null;
         unset($data['variants']);
 
@@ -154,6 +163,10 @@ class ProductController extends Controller
     public function update(Request $request, Product $product, ImageCompressionService $imageCompressor, VideoCompressionService $videoCompressor)
     {
         $data = $request->validate($this->validateFields());
+        $data['name_he'] = $this->translator->translate($data['name'], 'he');
+        $data['name_en'] = $this->translator->translate($data['name'], 'en');
+        $data['description_he'] = $this->translator->translate($data['description'] ?? null, 'he');
+        $data['description_en'] = $this->translator->translate($data['description'] ?? null, 'en');
         $variants = $data['variants'] ?? null;
         unset($data['variants']);
 

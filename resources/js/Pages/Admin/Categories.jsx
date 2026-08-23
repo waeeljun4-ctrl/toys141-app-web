@@ -60,6 +60,7 @@ function CatForm({ open, onClose, category, topLevelCategories }) {
         <Modal open={open} onClose={onClose} title={isEdit ? 'تعديل الصنف' : 'إضافة صنف'} maxWidth="max-w-sm">
             <form onSubmit={submit} className="space-y-3">
                 <Input label="اسم الصنف (عربي)" value={data.name} onChange={e=>setData('name',e.target.value)} error={errors.name} placeholder="الملابس النسائية" />
+                <p className="text-[11px] text-muted -mt-2">🌐 يُترجم تلقائياً للعبري والإنجليزي</p>
                 <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold tracking-widest uppercase text-muted">الصنف الأب (اختياري)</label>
                     <select value={data.parent_id} onChange={e=>setData('parent_id', e.target.value)}
@@ -70,10 +71,6 @@ function CatForm({ open, onClose, category, topLevelCategories }) {
                         ))}
                     </select>
                     {errors.parent_id && <p className="text-xs text-red-500">{errors.parent_id}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <Input label="الاسم بالعبري ✡" value={data.name_he} onChange={e=>setData('name_he',e.target.value)} placeholder="בגדי נשים" />
-                    <Input label="الاسم بالإنجليزي 🌍" value={data.name_en} onChange={e=>setData('name_en',e.target.value)} placeholder="Women's Clothing" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                     <Input label="الأيقونة" value={data.icon} onChange={e=>setData('icon',e.target.value)} placeholder="👗" />

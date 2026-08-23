@@ -376,23 +376,7 @@ export default function ProductEdit({ product, categories, brands }) {
                                 <Textarea label="الوصف" value={data.description}
                                     onChange={e => setData('description', e.target.value)}
                                     placeholder="وصف قصير للمنتج..." />
-                            </div>
-
-                            {/* الترجمات */}
-                            <div className="bg-white rounded-2xl border border-cream-3 p-4 space-y-3">
-                                <p className="font-black text-ink text-sm mb-1">🌐 الترجمات <span className="text-xs text-muted font-normal">(اختياري — إذا تُركت فارغة يُعرض العربي)</span></p>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Input label="الاسم بالعبري ✡" value={data.name_he}
-                                        onChange={e => setData('name_he', e.target.value)} placeholder="שם המוצר בעברית" />
-                                    <Input label="الاسم بالإنجليزي 🌍" value={data.name_en}
-                                        onChange={e => setData('name_en', e.target.value)} placeholder="Product name in English" />
-                                </div>
-                                <Textarea label="الوصف بالعبري ✡" value={data.description_he}
-                                    onChange={e => setData('description_he', e.target.value)}
-                                    placeholder="תיאור קצר של המוצר..." />
-                                <Textarea label="الوصف بالإنجليزي 🌍" value={data.description_en}
-                                    onChange={e => setData('description_en', e.target.value)}
-                                    placeholder="Short product description in English..." />
+                                <p className="text-[11px] text-muted mt-1">🌐 يُترجم الاسم والوصف تلقائياً للعبري والإنجليزي</p>
                             </div>
 
                             <div className="bg-white rounded-2xl border border-cream-3 p-4 space-y-3">
@@ -445,14 +429,11 @@ export default function ProductEdit({ product, categories, brands }) {
                                             <button type="button" onClick={() => removeVariant(i)}
                                                 className="w-full h-[42px] rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">🗑️</button>
                                         </div>
-                                        <div className="col-span-6">
-                                            <Input label="اللون بالعبري ✡ (اختياري)" value={v.color_he} onChange={e => updateVariant(i, 'color_he', e.target.value)} placeholder="אדום" />
-                                        </div>
-                                        <div className="col-span-6">
-                                            <Input label="اللون بالإنجليزي 🌍 (اختياري)" value={v.color_en} onChange={e => updateVariant(i, 'color_en', e.target.value)} placeholder="Red" />
-                                        </div>
                                     </div>
                                 ))}
+                                {data.variants.length > 0 && (
+                                    <p className="text-[11px] text-muted mt-1">🌐 يُترجم اللون تلقائياً للعبري والإنجليزي</p>
+                                )}
                             </div>
 
                             <div className="bg-white rounded-2xl border border-cream-3 p-4 space-y-3">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Services\ImageCompressionService;
+use App\Services\TranslationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,10 @@ use Inertia\Inertia;
 
 class CategoryController extends Controller
 {
+    public function __construct(private TranslationService $translator)
+    {
+    }
+
     public function index()
     {
         return Inertia::render('Admin/Categories', [
@@ -31,6 +36,9 @@ class CategoryController extends Controller
             'is_active'  => 'boolean',
         ]);
 
+        $data['name_he'] = $this->translator->translate($data['name'], 'he');
+        $data['name_en'] = $this->translator->translate($data['name'], 'en');
+
         Category::create($data);
         return back()->with('success', 'تم إضافة الصنف ✅');
     }
@@ -46,6 +54,9 @@ class CategoryController extends Controller
             'sort_order' => 'integer',
             'is_active'  => 'boolean',
         ]);
+
+        $data['name_he'] = $this->translator->translate($data['name'], 'he');
+        $data['name_en'] = $this->translator->translate($data['name'], 'en');
 
         $category->update($data);
         return back()->with('success', 'تم تحديث الصنف ✅');

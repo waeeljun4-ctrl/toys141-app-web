@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\HeroSlide;
 use App\Services\ImageCompressionService;
+use App\Services\TranslationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class HeroSlideController extends Controller
 {
+    public function __construct(private TranslationService $translator)
+    {
+    }
+
     public function index()
     {
         return Inertia::render('Admin/HeroSlides', [
@@ -34,6 +39,13 @@ class HeroSlideController extends Controller
             'is_active'   => 'boolean',
         ]);
 
+        $data['title_he'] = $this->translator->translate($data['title'], 'he');
+        $data['title_en'] = $this->translator->translate($data['title'], 'en');
+        $data['subtitle_he'] = $this->translator->translate($data['subtitle'] ?? null, 'he');
+        $data['subtitle_en'] = $this->translator->translate($data['subtitle'] ?? null, 'en');
+        $data['cta_text_he'] = $this->translator->translate($data['cta_text'] ?? null, 'he');
+        $data['cta_text_en'] = $this->translator->translate($data['cta_text'] ?? null, 'en');
+
         HeroSlide::create($data);
         return back()->with('success', 'تم إضافة الشريحة ✅');
     }
@@ -54,6 +66,13 @@ class HeroSlideController extends Controller
             'sort_order'  => 'integer',
             'is_active'   => 'boolean',
         ]);
+
+        $data['title_he'] = $this->translator->translate($data['title'], 'he');
+        $data['title_en'] = $this->translator->translate($data['title'], 'en');
+        $data['subtitle_he'] = $this->translator->translate($data['subtitle'] ?? null, 'he');
+        $data['subtitle_en'] = $this->translator->translate($data['subtitle'] ?? null, 'en');
+        $data['cta_text_he'] = $this->translator->translate($data['cta_text'] ?? null, 'he');
+        $data['cta_text_en'] = $this->translator->translate($data['cta_text'] ?? null, 'en');
 
         $heroSlide->update($data);
         return back()->with('success', 'تم تحديث الشريحة ✅');

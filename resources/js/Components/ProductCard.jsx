@@ -28,6 +28,7 @@ export default function ProductCard({ product }) {
     const videoRef = useRef(null);
     const cardRef = useRef(null);
     const [hovering, setHovering] = useState(false);
+    const [visible, setVisible] = useState(false);
     const galleryImages = [product.image, ...(product.images || [])].filter(Boolean);
     const [activeIndex, setActiveIndex] = useState(0);
     const sizes = uniqueSizes(product.variants, t('oneSize'));
@@ -77,13 +78,25 @@ export default function ProductCard({ product }) {
         return () => observer.disconnect();
     }, [product.video]);
 
+    // Only cycle the gallery while the card is actually on screen — a
+    // storefront with 100+ products was otherwise cycling every card's
+    // gallery simultaneously forever, continuously re-requesting images
+    // for cards nobody was looking at.
+    useEffect(() => {
+        const el = cardRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: '200px' });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
     // Auto-cycle through the product's photos so the card itself previews
     // the gallery without the customer needing to open it.
     useEffect(() => {
-        if (galleryImages.length < 2) return;
+        if (!visible || galleryImages.length < 2) return;
         const id = setInterval(() => setActiveIndex(i => (i + 1) % galleryImages.length), 2500);
         return () => clearInterval(id);
-    }, [galleryImages.length]);
+    }, [visible, galleryImages.length]);
 
     return (
         <div ref={cardRef} onClick={() => router.visit(`/product/${product.id}`)}
@@ -92,7 +105,7 @@ export default function ProductCard({ product }) {
 
             <div className="relative overflow-hidden aspect-square bg-gradient-to-br from-cream-2 to-cream-3 dark:from-ink dark:to-ink-2">
                 {galleryImages.length > 0
-                    ? <img src={`/storage/${galleryImages[activeIndex]}`} alt={localField(product, 'name', locale)}
+                    ? <img src={`/storage/${galleryImages[activeIndex]}`} alt={localField(product, 'name', locale)} loading="lazy" decoding="async"
                         className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${soldOut ? 'grayscale opacity-50' : ''}`} />
                     : <div className="w-full h-full flex items-center justify-center text-4xl">🧸</div>
                 }
@@ -124,7 +137,7 @@ export default function ProductCard({ product }) {
                     {galleryImages.map((img, i) => (
                         <button key={i} onClick={e => { e.stopPropagation(); setActiveIndex(i); }}
                             className={`shrink-0 w-8 h-8 rounded-lg overflow-hidden border-2 transition-colors ${activeIndex === i ? 'border-accent' : 'border-cream-3 dark:border-white/10 opacity-60 hover:opacity-100'}`}>
-                            <img src={`/storage/${img}`} className="w-full h-full object-cover" alt="" />
+                            <img src={`/storage/${img}`} loading="lazy" decoding="async" className="w-full h-full object-cover" alt="" />
                         </button>
                     ))}
                 </div>
